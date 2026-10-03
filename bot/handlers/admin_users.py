@@ -1,5 +1,6 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from sqlalchemy import select
 
 from database import async_session
 from keyboards.admin_users import (
@@ -15,6 +16,10 @@ router = Router()
 def is_admin(user: User) -> bool:
     return user.role == "admin"
 
+
+# =========================================================
+# МЕНЮ
+# =========================================================
 
 @router.callback_query(F.data == "admin:users:menu")
 async def users_menu(callback: CallbackQuery, user: User):
@@ -36,8 +41,6 @@ async def users_list(callback: CallbackQuery, user: User):
 
     filter_ = callback.data.split(":")[3]
 
-    from sqlalchemy import select
-
     async with async_session() as session:
         query = select(User)
         if filter_ == "pending":
@@ -45,8 +48,8 @@ async def users_list(callback: CallbackQuery, user: User):
         elif filter_ == "blocked":
             query = query.where(User.status == "blocked")
         elif filter_ == "all":
+            # Только пользователи и pending, без сотрудников и админов
             query = query.where(User.role.in_(["user", "pending"]))
-        # Сотрудники и админы сюда не попадают
         query = query.order_by(User.created_at.desc()).limit(50)
         result = await session.execute(query)
         users = list(result.scalars().all())
@@ -71,15 +74,17 @@ async def users_list(callback: CallbackQuery, user: User):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("admin:user:view:"))
-async def user_view(callback: CallbackQuery, user: User):
+# =========================================================
+# ОТРИСОВКА КАРТОЧКИ
+# =========================================================
+
+async def _render_user_card(
+    callback: CallbackQuery, user: User, target_id: int, filter_: str
+):
+    """Отрисовать карточку пользователя."""
     if not is_admin(user):
         await callback.answer("Нет доступа", show_alert=True)
         return
-
-    parts = callback.data.split(":")
-    target_id = int(parts[3])
-    filter_ = parts[4]
 
     async with async_session() as session:
         target = await session.get(User, target_id)
@@ -101,6 +106,18 @@ async def user_view(callback: CallbackQuery, user: User):
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("admin:user:view:"))
+async def user_view(callback: CallbackQuery, user: User):
+    parts = callback.data.split(":")
+    target_id = int(parts[3])
+    filter_ = parts[4]
+    await _render_user_card(callback, user, target_id, filter_)
+
+
+# =========================================================
+# ДЕЙСТВИЯ
+# =========================================================
+
 @router.callback_query(F.data.startswith("admin:user:role:"))
 async def user_set_role(callback: CallbackQuery, user: User):
     if not is_admin(user):
@@ -121,8 +138,7 @@ async def user_set_role(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer(f"Роль: {new_role}", show_alert=True)
-    callback.data = f"admin:user:view:{target_id}:{filter_}"
-    await user_view(callback, user)
+    await _render_user_card(callback, user, target_id, filter_)
 
 
 @router.callback_query(F.data.startswith("admin:user:make_staff:"))
@@ -133,7 +149,6 @@ async def user_make_staff(callback: CallbackQuery, user: User):
 
     parts = callback.data.split(":")
     target_id = int(parts[3])
-    filter_ = parts[4]
 
     async with async_session() as session:
         target = await session.get(User, target_id)
@@ -146,10 +161,9 @@ async def user_make_staff(callback: CallbackQuery, user: User):
     await callback.answer("Теперь сотрудник", show_alert=True)
 
     # Локальный импорт, чтобы не было циклической зависимости
-    from handlers.admin_staff import staff_view
+    from handlers.admin_staff import _render_staff_card
 
-    callback.data = f"admin:staff:view:{target_id}:all"
-    await staff_view(callback, user)
+    await _render_staff_card(callback, user, target_id, "all")
 
 
 @router.callback_query(F.data.startswith("admin:user:block:"))
@@ -171,8 +185,7 @@ async def user_block(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Заблокирован", show_alert=True)
-    callback.data = f"admin:user:view:{target_id}:{filter_}"
-    await user_view(callback, user)
+    await _render_user_card(callback, user, target_id, filter_)
 
 
 @router.callback_query(F.data.startswith("admin:user:unblock:"))
@@ -194,5 +207,4 @@ async def user_unblock(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Разблокирован", show_alert=True)
-    callback.data = f"admin:user:view:{target_id}:{filter_}"
-    await user_view(callback, user)
+    await _render_user_card(callback, user, target_id, filter_)

@@ -21,6 +21,10 @@ def is_admin(user: User) -> bool:
     return user.role == "admin"
 
 
+# =========================================================
+# МЕНЮ
+# =========================================================
+
 @router.callback_query(F.data == "admin:staff:menu")
 async def staff_menu(callback: CallbackQuery, user: User):
     if not is_admin(user):
@@ -80,8 +84,9 @@ async def staff_by_kind(callback: CallbackQuery, user: User):
         users = list(result.scalars().unique().all())
 
     if not users:
+        title = "👔 Менеджеров" if kind == "manager" else "🔧 Исполнителей"
         await callback.message.edit_text(
-            f"{'👔 Менеджеров' if kind == 'manager' else '🔧 Исполнителей'} пока нет.",
+            f"{title} пока нет.",
             reply_markup=staff_menu_kb(),
         )
         await callback.answer()
@@ -95,15 +100,17 @@ async def staff_by_kind(callback: CallbackQuery, user: User):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("admin:staff:view:"))
-async def staff_view(callback: CallbackQuery, user: User):
+# =========================================================
+# ОТРИСОВКА КАРТОЧКИ
+# =========================================================
+
+async def _render_staff_card(
+    callback: CallbackQuery, user: User, target_id: int, filter_: str
+):
+    """Отрисовать карточку сотрудника."""
     if not is_admin(user):
         await callback.answer("Нет доступа", show_alert=True)
         return
-
-    parts = callback.data.split(":")
-    target_id = int(parts[3])
-    filter_ = parts[4] if len(parts) > 4 else "all"
 
     async with async_session() as session:
         target = await session.get(User, target_id)
@@ -135,6 +142,18 @@ async def staff_view(callback: CallbackQuery, user: User):
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("admin:staff:view:"))
+async def staff_view(callback: CallbackQuery, user: User):
+    parts = callback.data.split(":")
+    target_id = int(parts[3])
+    filter_ = parts[4] if len(parts) > 4 else "all"
+    await _render_staff_card(callback, user, target_id, filter_)
+
+
+# =========================================================
+# ДОБАВЛЕНИЕ РОЛИ
+# =========================================================
+
 @router.callback_query(F.data.startswith("admin:staff:add_role:"))
 async def staff_add_role(callback: CallbackQuery, user: User):
     if not is_admin(user):
@@ -164,7 +183,7 @@ async def staff_add_kind(callback: CallbackQuery, user: User):
     filter_ = parts[5]
 
     await callback.message.edit_text(
-        f"Выберите <b>сферу</b>:",
+        "Выберите <b>сферу</b>:",
         reply_markup=add_role_scope_kb(target_id, kind, filter_),
     )
     await callback.answer()
@@ -187,9 +206,12 @@ async def staff_add_scope(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Роль добавлена", show_alert=True)
-    callback.data = f"admin:staff:view:{target_id}:{filter_}"
-    await staff_view(callback, user)
+    await _render_staff_card(callback, user, target_id, filter_)
 
+
+# =========================================================
+# УДАЛЕНИЕ РОЛИ
+# =========================================================
 
 @router.callback_query(F.data.startswith("admin:staff:del_role:"))
 async def staff_del_role(callback: CallbackQuery, user: User):
@@ -217,9 +239,12 @@ async def staff_del_role(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Роль удалена", show_alert=True)
-    callback.data = f"admin:staff:view:{target_id}:{filter_}"
-    await staff_view(callback, user)
+    await _render_staff_card(callback, user, target_id, filter_)
 
+
+# =========================================================
+# ПЕРЕВОД В ПОЛЬЗОВАТЕЛИ
+# =========================================================
 
 @router.callback_query(F.data.startswith("admin:staff:to_user:"))
 async def staff_to_user(callback: CallbackQuery, user: User):
@@ -249,7 +274,6 @@ async def staff_to_user(callback: CallbackQuery, user: User):
     await callback.answer("Вернули в пользователи", show_alert=True)
 
     # Локальный импорт, чтобы не было циклической зависимости
-    from handlers.admin_users import user_view
+    from handlers.admin_users import _render_user_card
 
-    callback.data = f"admin:user:view:{target_id}:all"
-    await user_view(callback, user)
+    await _render_user_card(callback, user, target_id, "all")
