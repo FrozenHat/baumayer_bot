@@ -281,7 +281,8 @@ async def order_view(callback: CallbackQuery, user: User):
         f"<b>Категория:</b> {CATEGORY_LABELS.get(order.category, order.category)}\n"
         f"<b>Статус:</b> {STATUS_LABELS.get(order.status, order.status)}\n"
         f"<b>Описание:</b> {order.description or '—'}\n"
-        f"<b>Цена:</b> {order.price or '—'}\n"
+        f"<b>Цена:</b> {order.price if order.price is not None else '—'}\n"
+        f"<b>Телефон клиента:</b> {customer_phone or '—'}\n"
     )
     await callback.message.edit_text(
         text,
@@ -454,3 +455,26 @@ async def order_respond(callback: CallbackQuery, user: User, bot: Bot):
 
     await callback.answer("Отклик отправлен", show_alert=True)
     await order_view(callback, user)
+
+@router.callback_query(F.data.startswith("order:show_phone:"))
+async def order_show_phone(callback: CallbackQuery, user: User):
+    order_id = int(callback.data.split(":")[2])
+
+    async with async_session() as session:
+        order = await session.get(Order, order_id)
+        if order is None or not order.customer_id:
+            await callback.answer("Заявка не найдена", show_alert=True)
+            return
+
+        profile = await session.get(Profile, order.customer_id)
+        if not profile or not profile.phone:
+            await callback.answer("У клиента нет телефона в профиле", show_alert=True)
+            return
+
+    # Отправляем номер отдельным сообщением — его можно скопировать
+    await callback.message.answer(
+        f"📞 <b>Телефон клиента:</b>\n"
+        f"<code>{profile.phone}</code>\n\n"
+        f"Нажмите на номер, чтобы скопировать."
+    )
+    await callback.answer()

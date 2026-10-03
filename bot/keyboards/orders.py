@@ -80,46 +80,36 @@ def order_card_kb(
 
     if is_responsible:
         if order.status == "new":
-            buttons.append([
-                InlineKeyboardButton(
-                    text="✅ Принять в работу",
-                    callback_data=f"order:accept:{order.id}",
-                )
-            ])
-            buttons.append([
-                InlineKeyboardButton(
-                    text="❌ Отклонить",
-                    callback_data=f"order:reject:{order.id}",
-                )
-            ])
+            buttons.append([InlineKeyboardButton(
+                text="✅ Принять в работу",
+                callback_data=f"order:accept:{order.id}",
+            )])
+            buttons.append([InlineKeyboardButton(
+                text="❌ Отклонить",
+                callback_data=f"order:reject:{order.id}",
+            )])
         elif order.status == "in_progress":
-            buttons.append([
-                InlineKeyboardButton(
-                    text="🏁 Завершить",
-                    callback_data=f"order:finish:{order.id}",
-                )
-            ])
-            buttons.append([
-                InlineKeyboardButton(
-                    text="🚫 Отменить",
-                    callback_data=f"order:cancel_order:{order.id}",
-                )
-            ])
+            buttons.append([InlineKeyboardButton(
+                text="🏁 Завершить",
+                callback_data=f"order:finish:{order.id}",
+            )])
+            buttons.append([InlineKeyboardButton(
+                text="🚫 Отменить",
+                callback_data=f"order:cancel_order:{order.id}",
+            )])
 
+        # Связь с клиентом
         if order.customer_id:
-            buttons.append([
-                InlineKeyboardButton(
-                    text="💬 Написать клиенту",
-                    url=f"tg://user?id={order.customer_id}",
-                )
-            ])
+            buttons.append([InlineKeyboardButton(
+                text="💬 Написать клиенту",
+                url=f"tg://user?id={order.customer_id}",
+            )])
             if customer_phone:
-                buttons.append([
-                    InlineKeyboardButton(
-                        text=f"📞 Позвонить {customer_phone}",
-                        url=f"tel:{customer_phone}",
-                    )
-                ])
+                # НЕ tel:, а callback — номер отправится отдельным сообщением
+                buttons.append([InlineKeyboardButton(
+                    text=f"📞 Показать номер клиента",
+                    callback_data=f"order:show_phone:{order.id}",
+                )])
 
     if not is_responsible and order.status in ("new", "in_progress"):
         buttons.append([
