@@ -7,21 +7,22 @@ from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN, DEBUG
 from database import init_db
-from handlers import (
-    admin,
-    admin_staff,
-    admin_users,
-    emergency,
-    help,
-    material,
-    orders,
-    profile,
-    project,
-    services,
-    start,
-    wallet,
-)
 from middlewares.user import UserMiddleware
+
+# Импортируем роутеры напрямую из модулей (не через пакет handlers)
+from handlers.start import router as start_router
+from handlers.profile import router as profile_router
+from handlers.wallet import router as wallet_router
+from handlers.project import router as project_router
+from handlers.orders import router as orders_router
+from handlers.material import router as material_router
+from handlers.services import router as services_router
+from handlers.emergency import router as emergency_router
+from handlers.help import router as help_router
+from handlers.admin import router as admin_router
+from handlers.admin_users import router as admin_users_router
+from handlers.admin_staff import router as admin_staff_router
+
 
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
@@ -32,43 +33,35 @@ logger = logging.getLogger(__name__)
 
 async def main():
     logger.info("Запуск бота...")
-
-    # 1. Инициализируем базу данных (создаём таблицы)
     await init_db()
     logger.info("База данных инициализирована.")
 
-    # 2. Создаём бота и диспетчер
     bot = Bot(
         token=BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher()
 
-    # 3. Подключаем middleware (регистрация пользователя)
     dp.message.middleware(UserMiddleware())
     dp.callback_query.middleware(UserMiddleware())
 
-   # Регистрируем роутеры
-    dp.include_router(help.router)
-    dp.include_router(services.router)
-    dp.include_router(emergency.router)
+    # Подключаем роутеры. Конкретные — раньше, общий start — позже.
+    dp.include_router(help_router)
+    dp.include_router(services_router)
+    dp.include_router(emergency_router)
 
-    # Старые разделы (пока не удаляем — они доступны через команды)
-    dp.include_router(profile.router)
-    dp.include_router(wallet.router)
-    dp.include_router(project.router)
-    dp.include_router(orders.router)
-    dp.include_router(material.router)
+    dp.include_router(profile_router)
+    dp.include_router(wallet_router)
+    dp.include_router(project_router)
+    dp.include_router(orders_router)
+    dp.include_router(material_router)
 
-    # Админка
-    dp.include_router(admin_users.router)
-    dp.include_router(admin_staff.router)
-    dp.include_router(admin.router)
+    dp.include_router(admin_users_router)
+    dp.include_router(admin_staff_router)
+    dp.include_router(admin_router)
 
-    # Start подключаем последним — чтобы его /start не перехватывал чужие
-    dp.include_router(start.router)
+    dp.include_router(start_router)
 
-    # 5. Запускаем polling
     logger.info("Бот запущен и слушает Telegram...")
     await dp.start_polling(bot)
 
