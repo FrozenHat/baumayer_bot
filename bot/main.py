@@ -12,7 +12,7 @@ from middlewares.user import UserMiddleware
 # Импортируем роутеры напрямую из модулей (не через пакет handlers)
 from handlers.start import router as start_router
 from handlers.profile import router as profile_router
-from handlers.wallet import router as wallet_router
+
 from handlers.project import router as project_router
 from handlers.orders import router as orders_router
 # from handlers.material import router as material_router
@@ -51,7 +51,7 @@ async def main():
     dp.include_router(emergency_router)
 
     dp.include_router(profile_router)
-    dp.include_router(wallet_router)
+    
     dp.include_router(project_router)
     dp.include_router(orders_router)
     # dp.include_router(material_router)
