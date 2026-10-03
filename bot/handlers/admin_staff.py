@@ -236,7 +236,6 @@ async def staff_to_user(callback: CallbackQuery, user: User):
         if target is None:
             await callback.answer("Сотрудник не найден", show_alert=True)
             return
-        # Забираем все роли подразделений
         result = await session.execute(
             select(StaffRole).where(StaffRole.user_id == target_id)
         )
@@ -248,6 +247,9 @@ async def staff_to_user(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Вернули в пользователи", show_alert=True)
-    callback.data = f"admin:user:view:{target_id}:all"
+
+    # Локальный импорт, чтобы не было циклической зависимости
     from handlers.admin_users import user_view
+
+    callback.data = f"admin:user:view:{target_id}:all"
     await user_view(callback, user)

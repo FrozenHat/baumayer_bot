@@ -144,9 +144,11 @@ async def user_make_staff(callback: CallbackQuery, user: User):
         await session.commit()
 
     await callback.answer("Теперь сотрудник", show_alert=True)
-    # Переходим сразу в карточку сотрудника
-    callback.data = f"admin:staff:view:{target_id}:all"
+
+    # Локальный импорт, чтобы не было циклической зависимости
     from handlers.admin_staff import staff_view
+
+    callback.data = f"admin:staff:view:{target_id}:all"
     await staff_view(callback, user)
 
 
