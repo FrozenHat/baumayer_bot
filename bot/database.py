@@ -36,9 +36,22 @@ async def get_session() -> AsyncSession:
 
 async def init_db():
     from models import (  # noqa: F401
-        Order, OrderPhoto, OrderReceipt, OrderResponse,
-        Profile, Project, ProjectMember,
-        StaffRole, Transaction, User, Wallet,
+        Emergency,
+        EmergencyMedia,
+        MaterialReceipt,
+        MaterialRequest,
+        MaterialRequestItem,
+        Order,
+        OrderPhoto,
+        OrderReceipt,
+        OrderResponse,
+        Profile,
+        Project,
+        ProjectMember,
+        StaffRole,
+        Transaction,
+        User,
+        Wallet,
     )
 
     async with engine.begin() as conn:
