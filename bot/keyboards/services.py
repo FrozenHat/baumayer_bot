@@ -101,10 +101,10 @@ def back_to_services_kb() -> InlineKeyboardMarkup:
 # МЕНЕДЖЕР
 # =========================================================
 
-def manager_order_card_kb(order, is_lead: bool) -> InlineKeyboardMarkup:
+def manager_order_card_kb(order, is_manager: bool) -> InlineKeyboardMarkup:
     """
     Карточка заявки для менеджера.
-    is_lead = True, если этот менеджер уже ведёт заявку.
+    is_manager = True, если пользователь — менеджер заказов или админ.
     """
     buttons = []
 
@@ -118,7 +118,7 @@ def manager_order_card_kb(order, is_lead: bool) -> InlineKeyboardMarkup:
             callback_data=f"srv:mgr:reject:{order.id}",
         )])
 
-    elif order.status == "in_progress" and is_lead:
+    elif order.status == "in_progress" and is_manager:
         buttons.append([InlineKeyboardButton(
             text="✏️ Заполнить карточку",
             callback_data=f"srv:mgr:fill:{order.id}",

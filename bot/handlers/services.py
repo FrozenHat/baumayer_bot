@@ -379,7 +379,8 @@ async def _render_manager_card(callback: CallbackQuery, user: User, order_id: in
             else None
         )
 
-    is_lead = order.responsible_id == user.id or user.role == "admin"
+        # Кто смотрит карточку — менеджер?
+        is_manager = await is_order_manager(session, user.id, user.role)
 
     text = (
         f"📋 <b>Заявка #{order.id}</b>\n\n"
@@ -401,7 +402,7 @@ async def _render_manager_card(callback: CallbackQuery, user: User, order_id: in
         f"<b>Исполнитель:</b> {executor.full_name if executor else '—'}"
     )
     await callback.message.edit_text(
-        text, reply_markup=manager_order_card_kb(order, is_lead)
+        text, reply_markup=manager_order_card_kb(order, is_manager)
     )
     await callback.answer()
 
