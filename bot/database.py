@@ -38,9 +38,6 @@ async def init_db():
     from models import (  # noqa: F401
         Emergency,
         EmergencyMedia,
-        MaterialReceipt,
-        MaterialRequest,
-        MaterialRequestItem,
         Order,
         OrderPhoto,
         OrderReceipt,
