@@ -14,7 +14,24 @@ SERVICES_CATEGORIES = {
 }
 
 
-def services_menu_kb(is_manager: bool = False, is_executor: bool = False) -> InlineKeyboardMarkup:
+STATUS_LABELS = {
+    "new": "🆕 Новая",
+    "in_progress": "⚙️ В работе",
+    "done": "✅ Выполнена",
+    "rejected": "❌ Отклонена",
+    "cancelled": "🚫 Отменена",
+    "disputed": "⚖️ Спор",
+}
+
+
+# =========================================================
+# КЛИЕНТ
+# =========================================================
+
+def services_menu_kb(
+    is_manager: bool = False, is_executor: bool = False
+) -> InlineKeyboardMarkup:
+    """Главное меню раздела «Услуги»."""
     buttons = [
         [InlineKeyboardButton(text="📋 Выбрать услугу", callback_data="srv:choose")],
         [InlineKeyboardButton(text="📂 Мои услуги", callback_data="srv:my")],
@@ -60,7 +77,7 @@ def after_order_kb(order_id: int) -> InlineKeyboardMarkup:
 
 
 def services_list_kb(orders: list[Order]) -> InlineKeyboardMarkup:
-    """Список заявок пользователя."""
+    """Список заявок клиента."""
     buttons = [
         [InlineKeyboardButton(
             text=f"#{o.id} • {o.title[:40]}",
@@ -79,17 +96,10 @@ def back_to_services_kb() -> InlineKeyboardMarkup:
         ]
     )
 
-# ============ МЕНЕДЖЕР ============
 
-STATUS_LABELS = {
-    "new": "🆕 Новая",
-    "in_progress": "⚙️ В работе",
-    "done": "✅ Выполнена",
-    "rejected": "❌ Отклонена",
-    "cancelled": "🚫 Отменена",
-    "disputed": "⚖️ Спор",
-}
-
+# =========================================================
+# МЕНЕДЖЕР
+# =========================================================
 
 def manager_order_card_kb(order, is_lead: bool) -> InlineKeyboardMarkup:
     """
@@ -103,6 +113,11 @@ def manager_order_card_kb(order, is_lead: bool) -> InlineKeyboardMarkup:
             text="✅ Принять в работу",
             callback_data=f"srv:mgr:accept:{order.id}",
         )])
+        buttons.append([InlineKeyboardButton(
+            text="❌ Отклонить",
+            callback_data=f"srv:mgr:reject:{order.id}",
+        )])
+
     elif order.status == "in_progress" and is_lead:
         buttons.append([InlineKeyboardButton(
             text="✏️ Заполнить карточку",
@@ -129,7 +144,7 @@ def executor_pick_kb(order_id: int, executors: list) -> InlineKeyboardMarkup:
     """Список исполнителей для назначения."""
     buttons = [
         [InlineKeyboardButton(
-            text=f"{u.full_name}",
+            text=u.full_name,
             callback_data=f"srv:mgr:assign_pick:{order_id}:{u.id}",
         )]
         for u in executors
@@ -144,12 +159,17 @@ def executor_pick_kb(order_id: int, executors: list) -> InlineKeyboardMarkup:
 def cancel_fill_kb(order_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⬅️ Отмена", callback_data=f"srv:mgr:view:{order_id}")],
+            [InlineKeyboardButton(
+                text="⬅️ Отмена",
+                callback_data=f"srv:mgr:view:{order_id}",
+            )],
         ]
     )
 
 
-# ============ ИСПОЛНИТЕЛЬ ============
+# =========================================================
+# ИСПОЛНИТЕЛЬ
+# =========================================================
 
 def executor_order_kb(order, has_response: bool) -> InlineKeyboardMarkup:
     """Карточка задачи для исполнителя."""
@@ -157,9 +177,18 @@ def executor_order_kb(order, has_response: bool) -> InlineKeyboardMarkup:
 
     if not has_response and order.status in ("new", "in_progress"):
         buttons.append([
-            InlineKeyboardButton(text="✅ Принять", callback_data=f"srv:ex:accept:{order.id}"),
-            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"srv:ex:decline:{order.id}"),
+            InlineKeyboardButton(
+                text="✅ Принять",
+                callback_data=f"srv:ex:accept:{order.id}",
+            ),
+            InlineKeyboardButton(
+                text="❌ Отклонить",
+                callback_data=f"srv:ex:decline:{order.id}",
+            ),
         ])
 
-    buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="srv:ex:my")])
+    buttons.append([InlineKeyboardButton(
+        text="⬅️ Назад",
+        callback_data="srv:ex:my",
+    )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
