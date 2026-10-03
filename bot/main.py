@@ -11,9 +11,13 @@ from handlers import (
     admin,
     admin_staff,
     admin_users,
+    emergency,
+    help,
+    material,
     orders,
     profile,
     project,
+    services,
     start,
     wallet,
 )
@@ -44,15 +48,25 @@ async def main():
     dp.message.middleware(UserMiddleware())
     dp.callback_query.middleware(UserMiddleware())
 
-    # 4. Подключаем роутеры
-    dp.include_router(start.router)
+   # Регистрируем роутеры
+    dp.include_router(help.router)
+    dp.include_router(services.router)
+    dp.include_router(emergency.router)
+
+    # Старые разделы (пока не удаляем — они доступны через команды)
     dp.include_router(profile.router)
     dp.include_router(wallet.router)
     dp.include_router(project.router)
-    dp.include_router(admin_users.router)   # ← сначала пользователи
-    dp.include_router(admin_staff.router)   # ← потом сотрудники
-    dp.include_router(admin.router)         # ← в конце общая панель
     dp.include_router(orders.router)
+    dp.include_router(material.router)
+
+    # Админка
+    dp.include_router(admin_users.router)
+    dp.include_router(admin_staff.router)
+    dp.include_router(admin.router)
+
+    # Start подключаем последним — чтобы его /start не перехватывал чужие
+    dp.include_router(start.router)
 
     # 5. Запускаем polling
     logger.info("Бот запущен и слушает Telegram...")
