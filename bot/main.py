@@ -54,7 +54,7 @@ async def main():
     dp.include_router(wallet_router)
     dp.include_router(project_router)
     dp.include_router(orders_router)
-    dp.include_router(material_router)
+    # dp.include_router(material_router)
 
     dp.include_router(admin_users_router)
     dp.include_router(admin_staff_router)
